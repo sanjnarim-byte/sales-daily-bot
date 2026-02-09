@@ -1,0 +1,53 @@
+import asyncio
+from datetime import datetime, time
+from telegram import Bot
+from telegram.ext import ApplicationBuilder
+
+TOKEN = "8571351637:AAFVB-tOmNMD5I8lLDXo6imTYaMMlchk28k"
+CHAT_ID = 5220191520
+ZOOM_LINK = "https://zoom.us/your_meeting_link"
+
+async def send_reminder():
+    bot = Bot(token=TOKEN)
+    text = (
+        "⏰ Напоминание!\n\n"
+        "Через 5 минут начинается ежедневный созвон в Zoom.\n\n"
+        f"👉 Ссылка: https://us05web.zoom.us/j/9139218826?pwd=tcgKFwYDFWxVj5bJXh3l4HaatgnhvK.1"
+    )
+    await bot.send_message(chat_id=5220191520, text=text)
+
+async def scheduler():
+    last_sent_date = None
+
+    while True:
+        now = datetime.now()
+        weekday = now.weekday()  # 0=Пн, 1=Вт, ... 4=Пт
+        current_time = now.time()
+
+        # Только будние дни
+        if weekday < 5:
+            # Понедельник = 10:55, остальные = 09:55
+            if weekday == 0:
+                target_time = time(10, 55)
+            else:
+                target_time = time(9, 55)
+
+            if (current_time.hour == target_time.hour and
+                current_time.minute == target_time.minute):
+
+                # Чтобы не отправлял несколько раз в одну минуту
+                if last_sent_date != now.date():
+                    await send_reminder()
+                    last_sent_date = now.date()
+
+        await asyncio.sleep(30)
+
+async def main():
+    app = ApplicationBuilder().token(TOKEN).build()
+    asyncio.create_task(scheduler())
+    await app.initialize()
+    await app.start()
+    await asyncio.Event().wait()
+
+if __name__ == "__main__":
+    asyncio.run(main())
